@@ -1,0 +1,54 @@
+
+
+.plugin_button:hover {
+	background-color: __background_neu__;
+	color: __text__;
+}
+
+.plugin_button {
+	border-radius:6px;
+	border:1px solid __border__;
+	background-color: __background_alt__;
+	box-shadow:inset 0px 1px 0px 0px #ffffff;
+	padding:0.5em;
+	margin: 0.2em;
+	text-decoration:none;
+	display: inline-table;
+	text-align:center;
+}
+
+.plugin_button_text {
+	display: table-cell;
+	width: 99%;
+	text-align: center;
+	vertical-align: middle;
+	text-shadow:1px 1px 0px #ffffff;
+}
+
+.plugin_button_image {
+	display: table-cell;
+	vertical-align: middle;
+	white-space: nowrap;
+	padding-right: 1em;
+}
+
+/*  2014-07-28 : fix bizarre chrome behaviour */ 
+.plugin_button_image img {
+	max-width: none;   
+}
+
+/*  
+Note : 
+- template style won't apply to the links because it is not a <a> link.
+- if I forced a link here (beside some problems in layout), it will override css given
+
+If you want standard CSS here, just copy it below, and add a space between 'a' and the class
+(example below for external links)
+*/
+
+.dokuwiki a .urlextern {
+    background-image: url(../../images/external-link.png);
+    background-repeat: no-repeat;
+    background-position: 0 center;
+    padding: 0 0 0 18px;
+}

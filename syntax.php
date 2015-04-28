@@ -208,6 +208,10 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
     
     function dokuwiki_get_link(&$xhtml, $id, $name = NULL) {
     	global $ID;
+    	resolve_pageid(getNS($ID),$id,$exists); //page file?
+    	if($exists) {
+    		return $this->internallink($xhtml,$id,$name);
+    	} 
     	resolve_mediaid(getNS($ID),$id,$exists); //media file?
     	if($exists) {
     		return $this->internalmedia($xhtml,$id,$name);

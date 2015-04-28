@@ -1,0 +1,2 @@
+# plugin-button
+Dokuwiki Plugin

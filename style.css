@@ -25,6 +25,10 @@
 	text-shadow:1px 1px 0px #ffffff;
 }
 
+.plugin_button_text.mediafile {
+	background-position:left center;
+}
+
 .plugin_button_image {
 	display: table-cell;
 	vertical-align: middle;

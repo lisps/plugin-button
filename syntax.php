@@ -22,7 +22,8 @@ All fields optional, minimal syntax:
  20/04/2014 : Added target support (feature request from Andrew St Hilaire)
  07/06/2014 : Added dokuwiki formatting support in title section (not working in wiki page section) (feature request from Willi Lethert)
  30/08/2014 : Added toolbar button (contribution from Xavier Decuyper) and fixed local anchor (bug reported by Andreas Kuzma)
- 06/09/2014 : Reffactored to add backlinks support (feature request from Schümmer Hans-Jürgen)
+ 06/09/2014 : Reffactored to add backlinks support (feature request from SchÃ¼mmer Hans-JÃ¼rgen)
+ 28/04/2015 : Reffactored global config handling, add internal media link support, add escaping of userinput
  
  */
 
@@ -30,114 +31,8 @@ if(!defined('DOKU_INC')) die();
 if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
 require_once(DOKU_PLUGIN.'syntax.php');
 
-// Copied and adapted from inc/parser/xhtml.php, function internallink (see RPHACK)
-// Should use wl instead (from commons), but this won't do the trick for the name
-function dokuwiki_get_link(&$xhtml, $id, $name = NULL, $search=NULL,$returnonly=false,$linktype='content')
-{
-	global $conf;
-	global $ID;
-	global $INFO;
-	
-
-	$params = '';
-	$parts = explode('?', $id, 2);
-	if (count($parts) === 2) {
-		$id = $parts[0];
-		$params = $parts[1];
-	}
-
-	// For empty $id we need to know the current $ID
-	// We need this check because _simpleTitle needs
-	// correct $id and resolve_pageid() use cleanID($id)
-	// (some things could be lost)
-	if ($id === '') {
-		$id = $ID;
-	}
-
-	// RPHACK for get_link to work with local links '#id'
-	if (substr($id, 0, 1) === '#') {
-		$id = $ID . $id;
-	}
-	// -------
-	
-	// default name is based on $id as given
-	$default = $xhtml->_simpleTitle($id);
-
-	// now first resolve and clean up the $id
-	resolve_pageid(getNS($ID),$id,$exists);
-
-	$name = $xhtml->_getLinkTitle($name, $default, $isImage, $id, $linktype);
-	if ( !$isImage ) {
-		if ( $exists ) {
-			$class='wikilink1';
-		} else {
-			$class='wikilink2';
-			$link['rel']='nofollow';
-		}
-	} else {
-		$class='media';
-	}
-
-	//keep hash anchor
-	list($id,$hash) = explode('#',$id,2);
-	if(!empty($hash)) $hash = $xhtml->_headerToLink($hash);
-
-	//prepare for formating
-	$link['target'] = $conf['target']['wiki'];
-	$link['style']  = '';
-	$link['pre']    = '';
-	$link['suf']    = '';
-	// highlight link to current page
-	if ($id == $INFO['id']) {
-		$link['pre']    = '<span class="curid">';
-		$link['suf']    = '</span>';
-	}
-	$link['more']   = '';
-	$link['class']  = $class;
-	$link['url']    = wl($id, $params);
-	$link['name']   = $name;
-	$link['title']  = $id;
-	//add search string
-	if($search){
-		($conf['userewrite']) ? $link['url'].='?' : $link['url'].='&amp;';
-		if(is_array($search)){
-			$search = array_map('rawurlencode',$search);
-			$link['url'] .= 's[]='.join('&amp;s[]=',$search);
-		}else{
-			$link['url'] .= 's='.rawurlencode($search);
-		}
-	}
-
-	//keep hash
-	if($hash) $link['url'].='#'.$hash;
-
-	return $link;
-	//output formatted
-	//if($returnonly){
-	//	return $this->_formatLink($link);
-	//}else{
-	//	$this->doc .= $this->_formatLink($link);
-	//}
-}
-
-
 class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 
-    public $urls = array();
-    public $styles = array();
- 
-    /* replaced bu plugin.info.txt */
-    function getInfo(){
-      return array(
-        'author' => 'RÃ©mi Peyronnet',
-        'email'  => 'remi+button@via.ecp.fr',
-        'date'   => '2014-06-07',
-        'name'   => 'Button Plugin',
-        'desc'   => 'Add button links syntax',
-        'url'    => 'http://people.via.ecp.fr/~remi/',
-      );
-    }
- 
     function getType() { return 'substition'; }
     function getPType() { return 'normal'; }
     function getSort() { return 250; }  // Internal link is 300
@@ -150,6 +45,37 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
     function postConnect() { }
 	function getAllowedTypes() { return array('formatting','substition'); }
 
+	
+	
+	protected $styles = array();
+	protected $targets = array();
+	protected function setStyle($name,$value) {
+		global $ID;
+		$this->styles[$ID][$name] = $value;
+	}
+	protected function getStyle($name) {
+		global $ID;
+		return $this->styles[$ID][$name];
+	}
+	protected function hasStyle($name) {
+		global $ID;
+		return (is_array($this->styles[$ID]) && array_key_exists($name,$this->styles[$ID])) ? true : false;
+	}
+	
+	
+	protected function setTarget($name,$value) {
+		global $ID;
+		$this->targets[$ID][$name] = $value;
+	}
+	protected function getTarget($name) {
+		global $ID;
+		return $this->targets[$ID][$name];
+	}
+	protected function hasTarget($name) {
+		global $ID;
+		return (is_array($this->targets[$ID]) && array_key_exists($name,$this->targets[$ID])) ? true : false;
+	}
+	
     function handle($match, $state, $pos, &$handler)
     { 
 		global $plugin_button_styles;
@@ -168,36 +94,37 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 				{
 					if ($data['image'] == 'conf.styles')
 					{
-						$plugin_button_styles[$data['link']] = $data['title'];
+						$this->setStyle($data['link'],$data['title']);
 					}
 					else if ($data['image'] == 'conf.target')
 					{
-						$plugin_button_target[$data['link']] = $data['title'];
+						$this->setTarget($data['link'],$data['title']);
 					}
 					else
 					{
 						$data['target'] = "";
-						if (is_array($plugin_button_target) && array_key_exists('default',$plugin_button_target))
+						if ($this->hasTarget($data['css']))
 						{
-							$data['target'] = " target='" . $plugin_button_target['default'] . "'";
+							$data['target'] =  $this->getTarget($data['css']);
+						} 
+						else if ($this->hasTarget('default'))
+						{
+							$data['target'] = $this->getTarget('default');
 						}
-						if (is_array($plugin_button_target) && array_key_exists($data['css'],$plugin_button_target))
+
+						
+						if ($data['css'] != "" && $this->hasStyle($data['css']))
 						{
-							$data['target'] = " target='" . $plugin_button_target[$data['css']] . "'";
+							$data['css'] = $this->getStyle($data['css']);
 						}
-						if ($data['css'] != "")
+
+						if ($this->hasStyle('default') && ($data['css'] != 'default'))
 						{
-							if (is_array($plugin_button_styles) && array_key_exists($data['css'],$plugin_button_styles))
-							{
-								$data['css'] = $plugin_button_styles[$data['css']];
-							}
-						}
-						if (is_array($plugin_button_styles) && array_key_exists('default',$plugin_button_styles) && ($data['css'] != 'default'))
-						{
-							$data['css'] = $plugin_button_styles['default'] .' ; '. $data['css'];
+							$data['css'] = $this->getStyle('default') .' ; '. $data['css'];
 						}
 					}
 				}
+
                 return array($state, $data);
  
           case DOKU_LEXER_UNMATCHED :  return array($state, $match); 
@@ -234,16 +161,18 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 						else
 						{
 							// Internal
-							$link = dokuwiki_get_link($renderer, $match['link'], $match['title']);
+							$link = $this->dokuwiki_get_link($renderer, $match['link'], $match['title']);
 						}
 						$target = $match['target'];
-						$link['name'] = str_replace('\\\\','<br />', $link['name']);
+						if($target) $target = " target ='" .hsc($target). "' ";
+						
+						$link['name'] = str_replace('\\\\','<br />', $link['name']); //textbreak support
 						if ($image != '')
 						{
 							$image =  "<span class='plugin_button_image'><img src='" . ml($image) . "' /></span>";
 						}
-						$text = "<a $target href='${link['url']}'><span class='plugin_button' style='${match['css']}'>$image<span class='plugin_button_text ${link['class']}'>";
-						if (substr($match[0],-1) != "|") $text .= "${link['name']}";
+						$text = "<a ".$target." href='".$link['url']."'><span class='plugin_button' style='".hsc($match['css'])."'>$image<span class='plugin_button_text ${link['class']}'>";
+						if (substr($match[0],-1) != "|") $text .= $link['name'];
 						$renderer->doc .= $text; 
 					}
 				}
@@ -275,6 +204,144 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
             return true;
 		}
         return false;
+    }
+    
+    function dokuwiki_get_link(&$xhtml, $id, $name = NULL) {
+    	global $ID;
+    	resolve_mediaid(getNS($ID),$id,$exists); //media file?
+    	if($exists) {
+    		return $this->internalmedia($xhtml,$id,$name);
+    	} else {
+    		return $this->internallink($xhtml,$id,$name);
+    	}
+    }
+    
+    // Copied and adapted from inc/parser/xhtml.php, function internallink (see RPHACK)
+    // Should use wl instead (from commons), but this won't do the trick for the name
+    function internallink(&$xhtml, $id, $name = NULL, $search=NULL,$returnonly=false,$linktype='content')
+    {
+    	global $conf;
+    	global $ID;
+    	global $INFO;
+    
+    
+    	$params = '';
+    	$parts = explode('?', $id, 2);
+    	if (count($parts) === 2) {
+    		$id = $parts[0];
+    		$params = $parts[1];
+    	}
+    
+    	// For empty $id we need to know the current $ID
+    	// We need this check because _simpleTitle needs
+    	// correct $id and resolve_pageid() use cleanID($id)
+    	// (some things could be lost)
+    	if ($id === '') {
+    		$id = $ID;
+    	}
+    
+    	// RPHACK for get_link to work with local links '#id'
+    	if (substr($id, 0, 1) === '#') {
+    		$id = $ID . $id;
+    	}
+    	// -------
+    
+    	// default name is based on $id as given
+    	$default = $xhtml->_simpleTitle($id);
+    
+    	// now first resolve and clean up the $id
+    	resolve_pageid(getNS($ID),$id,$exists);
+    
+    	$name = $xhtml->_getLinkTitle($name, $default, $isImage, $id, $linktype);
+    	if ( !$isImage ) {
+    		if ( $exists ) {
+    			$class='wikilink1';
+    		} else {
+    			$class='wikilink2';
+    			$link['rel']='nofollow';
+    		}
+    	} else {
+    		$class='media';
+    	}
+    
+    	//keep hash anchor
+    	list($id,$hash) = explode('#',$id,2);
+    	if(!empty($hash)) $hash = $xhtml->_headerToLink($hash);
+    
+    	//prepare for formating
+    	$link['target'] = $conf['target']['wiki'];
+    	$link['style']  = '';
+    	$link['pre']    = '';
+    	$link['suf']    = '';
+    	// highlight link to current page
+    	if ($id == $INFO['id']) {
+    		$link['pre']    = '<span class="curid">';
+    		$link['suf']    = '</span>';
+    	}
+    	$link['more']   = '';
+    	$link['class']  = $class;
+    	$link['url']    = wl($id, $params);
+    	$link['name']   = $name;
+    	$link['title']  = $id;
+    	//add search string
+    	if($search){
+    		($conf['userewrite']) ? $link['url'].='?' : $link['url'].='&amp;';
+    		if(is_array($search)){
+    			$search = array_map('rawurlencode',$search);
+    			$link['url'] .= 's[]='.join('&amp;s[]=',$search);
+    		}else{
+    			$link['url'] .= 's='.rawurlencode($search);
+    		}
+    	}
+    
+    	//keep hash
+    	if($hash) $link['url'].='#'.$hash;
+    
+    	return $link;
+    	//output formatted
+    	//if($returnonly){
+    	//	return $this->_formatLink($link);
+    	//}else{
+    	//	$this->doc .= $this->_formatLink($link);
+    	//}
+    }
+    
+    
+    function internalmedia (&$xhtml, $src, $title=NULL, $align=NULL, $width=NULL,
+    		$height=NULL, $cache=NULL, $linking=NULL) {
+    	global $ID;
+    	list($src,$hash) = explode('#',$src,2);
+    	resolve_mediaid(getNS($ID),$src, $exists);
+    
+    	$noLink = false;
+    	$render = ($linking == 'linkonly') ? false : true;
+    	$link = $xhtml->_getMediaLinkConf($src, $title, $align, $width, $height, $cache, $render);
+    
+    	list($ext,$mime,$dl) = mimetype($src,false);
+    	if(substr($mime,0,5) == 'image' && $render){
+    		$link['url'] = ml($src,array('id'=>$ID,'cache'=>$cache),($linking=='direct'));
+    	}elseif($mime == 'application/x-shockwave-flash' && $render){
+    		// don't link flash movies
+    		$noLink = true;
+    	}else{
+    		// add file icons
+    		$class = preg_replace('/[^_\-a-z0-9]+/i','_',$ext);
+    		$link['class'] .= ' mediafile mf_'.$class;
+    		$link['url'] = ml($src,array('id'=>$ID,'cache'=>$cache),true);
+    		if ($exists) $link['title'] .= ' (' . filesize_h(filesize(mediaFN($src))).')';
+    	}
+    
+    	if($hash) $link['url'] .= '#'.$hash;
+    
+    	//markup non existing files
+    	if (!$exists) {
+    		$link['class'] .= ' wikilink2';
+    	}
+    
+    	return $link;
+    	//output formatted
+//     	if ($linking == 'nolink' || $noLink) $this->doc .= $link['name'];
+//     	else $this->doc .= $this->_formatLink($link);
     }
 }
 

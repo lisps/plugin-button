@@ -22,8 +22,8 @@ All fields optional, minimal syntax:
  20/04/2014 : Added target support (feature request from Andrew St Hilaire)
  07/06/2014 : Added dokuwiki formatting support in title section (not working in wiki page section) (feature request from Willi Lethert)
  30/08/2014 : Added toolbar button (contribution from Xavier Decuyper) and fixed local anchor (bug reported by Andreas Kuzma)
- 06/09/2014 : Reffactored to add backlinks support (feature request from Schümmer Hans-Jürgen)
- 28/04/2015 : Reffactored global config handling, add internal media link support, add escaping of userinput
+ 06/09/2014 : Refactored to add backlinks support (feature request from Schümmer Hans-Jürgen)
+ 28/04/2015 : Refactored global config handling, add internal media link support, add escaping of userinput (contribution from Peter Stumm   https://github.com/lisps/plugin-button)
  
  */
 

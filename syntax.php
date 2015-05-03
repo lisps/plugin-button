@@ -35,7 +35,7 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 
     function getType() { return 'substition'; }
     function getPType() { return 'normal'; }
-    function getSort() { return 250; }  // Internal link is 300
+    function getSort() { return 25; }  // Internal link is 300  (2014-12-28 : moved to 25 instead of 250 after dokuwiki upgrade)
 //    function connectTo($mode) { $this->Lexer->addSpecialPattern('\[\[{[^}]*}[^\]]*\]\]',$mode,'plugin_button'); }
     function connectTo($mode) { 
 		$this->Lexer->addSpecialPattern('\[\[{conf[^}]*}[^\]]*\]\]',$mode,'plugin_button'); 

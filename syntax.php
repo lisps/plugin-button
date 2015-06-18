@@ -22,8 +22,8 @@ All fields optional, minimal syntax:
  20/04/2014 : Added target support (feature request from Andrew St Hilaire)
  07/06/2014 : Added dokuwiki formatting support in title section (not working in wiki page section) (feature request from Willi Lethert)
  30/08/2014 : Added toolbar button (contribution from Xavier Decuyper) and fixed local anchor (bug reported by Andreas Kuzma)
- 06/09/2014 : Reffactored to add backlinks support (feature request from Schümmer Hans-Jürgen)
- 28/04/2015 : Reffactored global config handling, add internal media link support, add escaping of userinput
+ 06/09/2014 : Refactored to add backlinks support (feature request from Schümmer Hans-Jürgen)
+ 28/04/2015 : Refactored global config handling, add internal media link support, add escaping of userinput (contribution from Peter Stumm   https://github.com/lisps/plugin-button)
  
  */
 
@@ -35,7 +35,7 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 
     function getType() { return 'substition'; }
     function getPType() { return 'normal'; }
-    function getSort() { return 250; }  // Internal link is 300
+    function getSort() { return 25; }  // Internal link is 300
 //    function connectTo($mode) { $this->Lexer->addSpecialPattern('\[\[{[^}]*}[^\]]*\]\]',$mode,'plugin_button'); }
     function connectTo($mode) { 
 		$this->Lexer->addSpecialPattern('\[\[{conf[^}]*}[^\]]*\]\]',$mode,'plugin_button'); 
@@ -208,11 +208,13 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
     
     function dokuwiki_get_link(&$xhtml, $id, $name = NULL) {
     	global $ID;
-    	resolve_pageid(getNS($ID),$id,$exists); //page file?
+		$resolveid = $id;    // To prevent resolve_pageid to change $id value
+    	resolve_pageid(getNS($ID),$resolveid,$exists); //page file?
     	if($exists) {
     		return $this->internallink($xhtml,$id,$name);
     	} 
-    	resolve_mediaid(getNS($ID),$id,$exists); //media file?
+		$resolveid = $id;   
+    	resolve_mediaid(getNS($ID),$resolveid,$exists); //media file?
     	if($exists) {
     		return $this->internalmedia($xhtml,$id,$name);
     	} else {

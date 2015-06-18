@@ -47,6 +47,7 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 
 	
 	
+	protected $confStyles;
 	protected $styles = array();
 	protected $targets = array();
 	protected function setStyle($name,$value) {
@@ -55,11 +56,43 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 	}
 	protected function getStyle($name) {
 		global $ID;
-		return $this->styles[$ID][$name];
+		return isset($this->styles[$ID][$name]) ? $this->styles[$ID][$name] : $this->getConfStyles($name);
 	}
 	protected function hasStyle($name) {
 		global $ID;
-		return (is_array($this->styles[$ID]) && array_key_exists($name,$this->styles[$ID])) ? true : false;
+		return (is_array($this->styles[$ID]) && array_key_exists($name,$this->styles[$ID])) 
+					|| $this->getConfStyles($name) ? true : false;
+	}
+	protected function getConfStyles($name = null) {
+		if($this->confStyles === null) {
+			$this->confStyles = array();
+			
+			$styles = $this->getConf('styles');
+			if(!$styles) return;
+			
+			$styles = explode("\n", $styles);
+			if(!is_array($styles)) return;
+			
+			foreach ($styles as $style) {
+				$style = trim($style);
+				if(!$style) continue;
+				
+				$style = explode('|', $style,2);
+				if(!is_array($style) || !$style[0] || !$style[1]) continue;
+				
+				$this->confStyles[trim($style[0])] = trim($style[1]);
+			}
+			//dbg($this->confStyles);
+		
+		}
+
+		if($name) {
+			if(!isset($this->confStyles[$name])) return false;
+			
+			return $this->confStyles[$name];
+		}
+		return $this->confStyles;
+		
 	}
 	
 	
@@ -169,7 +202,8 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 						$link['name'] = str_replace('\\\\','<br />', $link['name']); //textbreak support
 						if ($image != '')
 						{
-							$image =  "<span class='plugin_button_image'><img src='" . ml($image) . "' /></span>";
+							$image = Doku_Handler_Parse_Media("{{".$image."}}");
+							$image =  "<span class='plugin_button_image'>". $this->internalmedia($renderer,$image['src'],null,null,$image['width'],$image['height'])['name'] ."</span>";
 						}
 						$text = "<a ".$target." href='".$link['url']."'><span class='plugin_button' style='".hsc($match['css'])."'>$image<span class='plugin_button_text ${link['class']}'>";
 						if (substr($match[0],-1) != "|") $text .= $link['name'];

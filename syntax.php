@@ -24,6 +24,7 @@ All fields optional, minimal syntax:
  30/08/2014 : Added toolbar button (contribution from Xavier Decuyper) and fixed local anchor (bug reported by Andreas Kuzma)
  06/09/2014 : Refactored to add backlinks support (feature request from Schümmer Hans-Jürgen)
  28/04/2015 : Refactored global config handling, add internal media link support, add escaping of userinput (contribution from Peter Stumm   https://github.com/lisps/plugin-button)
+  05/08/2015 : Merged lisps default style option and added french translation
  
  */
 

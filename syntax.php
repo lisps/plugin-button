@@ -111,7 +111,7 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
 		return (is_array($this->targets[$ID]) && array_key_exists($name,$this->targets[$ID])) ? true : false;
 	}
 	
-    function handle($match, $state, $pos, &$handler)
+    function handle($match, $state, $pos, Doku_Handler $handler)
     { 
 		global $plugin_button_styles;
 		global $plugin_button_target;
@@ -169,7 +169,7 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
         return array();
     }
     
-    function render($mode, &$renderer, $data) 
+    function render($mode, Doku_Renderer $renderer, $data) 
     {
 		global $plugin_button_styles;
 		global $plugin_button_target;

@@ -27,7 +27,7 @@ class action_plugin_button extends DokuWiki_Action_Plugin {
     }
 
     function handle_toolbar(&$event, $param) {
-		$syntaxDiv = $this->getConf('syntaxDiv');
+        $syntaxDiv = $this->getConf('syntaxDiv');
         $syntaxSpan = $this->getConf('syntaxSpan');
 
         $event->data[] = array (
@@ -44,41 +44,42 @@ class action_plugin_button extends DokuWiki_Action_Plugin {
         $event->data['handlers']['button'] = array($this, 'rewrite_button');
     }
 
-	function move_newid($handler, $page, $type)
-	{
+    function move_newid($handler, $page, $type)
+    {
         if (method_exists($handler, 'adaptRelativeId')) { // move plugin before version 2015-05-16
             $newpage = $handler->adaptRelativeId($page);
         } else {
             $newpage = $handler->resolveMoves($page, $type);
             $newpage = $handler->relativeLink($page, $newpage, $type);
         }
-		return $newpage;
-	}
+        return $newpage;
+    }
   
-    public function rewrite_button($match, $pos, $state, $plugin, helper_plugin_move_handler $handler){
+    public function rewrite_button($match, $pos, $state, $plugin, helper_plugin_move_handler $handler)
+    {
         $returnValue = $match;
     
-		if (preg_match('/\[\[{(?<image>[^}\|]*)\|?(?<css>[^}]*)}(?<link>[^\]\|]*)\|?(?<title>[^\]]*)/', $match, $data))
-		{
-			// Skip syntaxes that should not be rewritten
-			if (($data['image'] != 'conf.styles') && ($data['image'] != 'conf.target'))
-			{
-				// Adapt image 
-				$data['image'] = $this->move_newid($handler, $data['image'], 'media');
-				$data['link'] = $this->move_newid($handler, $data['link'], 'page');
-				// Rebuild button syntax
-				$returnValue="[[{" . $data['image'];
-				if ($data['css'])  $returnValue .= "|" . $data['css'];
-				$returnValue.="}";
-				$returnValue.=$data['link'];
-				if (substr($match,-1) == "|")  $returnValue.="|";
-				if ($data['title'])  $returnValue .= "|" . $data['title'];
-			}
-		}
+        if (preg_match('/\[\[{(?<image>[^}\|]*)\|?(?<css>[^}]*)}(?<link>[^\]\|]*)\|?(?<title>[^\]]*)/', $match, $data))
+        {
+            // Skip syntaxes that should not be rewritten
+            if (($data['image'] != 'conf.styles') && ($data['image'] != 'conf.target'))
+            {
+                // Adapt image 
+                $data['image'] = $this->move_newid($handler, $data['image'], 'media');
+                $data['link'] = $this->move_newid($handler, $data['link'], 'page');
+                // Rebuild button syntax
+                $returnValue="[[{" . $data['image'];
+                if ($data['css'])  $returnValue .= "|" . $data['css'];
+                $returnValue.="}";
+                $returnValue.=$data['link'];
+                if (substr($match,-1) == "|")  $returnValue.="|";
+                if ($data['title'])  $returnValue .= "|" . $data['title'];
+            }
+        }
 
-		//dbglog("REWRITE  : " . $match . "  ---->   " . $returnValue);
+        //dbglog("REWRITE  : " . $match . "  ---->   " . $returnValue);
         return $returnValue;
     }
-	
+    
 }
 

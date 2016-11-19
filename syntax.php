@@ -217,10 +217,16 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
                             $image =  "<span class='plugin_button_image'>". $image['name'] ."</span>";
                         }
                         $text = "<a ".$target." href='".$link['url']."'><span class='plugin_button' style='".hsc($match['css'])."'>$image<span class='plugin_button_text ${link['class']}'>";
-                        p_set_metadata($ID, array(
+                        if (substr($match[0],-1) != "|") $text .= $link['name'];
+                        $renderer->doc .= $text; 
+						// Update meta data for move
+                       p_set_metadata($ID, array(
                           'relation'=>array(
                               'references'=>array(
                                   $match['link']=>true,
+                              ),
+                              'medias'=>array(
+                                  $match['image']=>true,
                               ),
                           ),
                           'plugin_move'=>array(
@@ -230,10 +236,11 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
                               'pages'=>array(
                                   $match['link'],
                               ),
+                              'medias'=>array(
+                                  $match['image'],
+                              ),
                           ),
-                        ));
-                        if (substr($match[0],-1) != "|") $text .= $link['name'];
-                        $renderer->doc .= $text; 
+                        ));						
                     }
                 }
                 break;

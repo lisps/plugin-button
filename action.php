@@ -8,6 +8,9 @@
  * 
  * @author     ThisNameIsNotAllowed
  * 17/11/2016 : Extended for usage with the move plugin (Added eventhandler and callback)
+ *
+ * @author 	Remi Peyronnet
+ * 19/11/2016 : rewrote move plugin handler to work with all button syntaxes
  */
 
 // must be run within Dokuwiki
@@ -40,51 +43,42 @@ class action_plugin_button extends DokuWiki_Action_Plugin {
     public function handleBeforePageMove(Doku_Event $event, $param){
         $event->data['handlers']['button'] = array($this, 'rewrite_button');
     }
-    
-    public function rewrite_button($match, $pos, $state, $plugin, helper_plugin_move_handler $handler){
-        $returnValue = '';
-        switch(substr($match, 0, 2)){
-            case '[[':
-                $returnValue = $this->_rewrite_button_link($match, $handler);
-                break;
-            case ']]':
-                $returnValue = $this->_rewrite_button_close($match, $handler);
-                break;
-            default:
-                $returnValue = $this->_rewrite_button_text($match, $handler);
-                break;
-        }
-    
-        return $returnValue;
-    }
-    
-    protected function _rewrite_button_link($match, $handler){
-        if(strpos($match, '}') !== false){
-            $returnValue = substr($match, 0, strpos($match, '}')+1);    //keep old configuration
-            $old_id = substr($match, strpos($match, '}')+1, -1);        //get old id from between "}" and "|"
+
+	function move_newid($handler, $page, $type)
+	{
+        if (method_exists($handler, 'adaptRelativeId')) { // move plugin before version 2015-05-16
+            $newpage = $handler->adaptRelativeId($page);
         } else {
-            throw new Exception('Button syntax incorrect.<br>Link could not be adjusted');
+            $newpage = $handler->resolveMoves($page, $type);
+            $newpage = $handler->relativeLink($page, $newpage, $type);
         }
-    
-        //retrieve new id from the move handler
-        $new_id = $handler->resolveMoves($old_id, 'page');
-        $returnValue .= $handler->relativeLink($old_id, $new_id, 'page');
-    
-        //check for last char being the escape character between link and text
-        if(substr($returnValue, -1) !== '|'){
-            $returnValue .= '|';
-        }
-        return $returnValue;
-    }
-    
-    protected function _rewrite_button_text($match, $handler){
+		return $newpage;
+	}
+  
+    public function rewrite_button($match, $pos, $state, $plugin, helper_plugin_move_handler $handler){
         $returnValue = $match;
-        return $returnValue;
-    }
     
-    protected function _rewrite_button_close($match, $handler){
-        $returnValue = $match;
+		if (preg_match('/\[\[{(?<image>[^}\|]*)\|?(?<css>[^}]*)}(?<link>[^\]\|]*)\|?(?<title>[^\]]*)/', $match, $data))
+		{
+			// Skip syntaxes that should not be rewritten
+			if (($data['image'] != 'conf.styles') && ($data['image'] != 'conf.target'))
+			{
+				// Adapt image 
+				$data['image'] = $this->move_newid($handler, $data['image'], 'media');
+				$data['link'] = $this->move_newid($handler, $data['link'], 'page');
+				// Rebuild button syntax
+				$returnValue="[[{" . $data['image'];
+				if ($data['css'])  $returnValue .= "|" . $data['css'];
+				$returnValue.="}";
+				$returnValue.=$data['link'];
+				if (substr($match,-1) == "|")  $returnValue.="|";
+				if ($data['title'])  $returnValue .= "|" . $data['title'];
+			}
+		}
+
+		//dbglog("REWRITE  : " . $match . "  ---->   " . $returnValue);
         return $returnValue;
     }
+	
 }
 

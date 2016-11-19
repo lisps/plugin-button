@@ -225,7 +225,7 @@ class syntax_plugin_button extends DokuWiki_Syntax_Plugin {
                               'references'=>array(
                                   $match['link']=>true,
                               ),
-                              'medias'=>array(
+                              'media'=>array(
                                   $match['image']=>true,
                               ),
                           ),
